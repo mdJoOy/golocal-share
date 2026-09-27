@@ -55,7 +55,7 @@ func broadCustPeer(self PeerInfo) {
 	for range ticker.C {
 		_, err := conn.WriteToUDP(payload, addr)
 		if err != nil {
-			fmt.Println("could not broadcast the peer info")
+			fmt.Println("could not broadcast the peer info", err)
 			continue
 		}
 	}
@@ -71,17 +71,19 @@ func listenForPeers(selfId string) {
 		fmt.Println("udp listening function problem", err)
 	}
 	byt := make([]byte, 1024)
-	n, udpAddr, err := conn.ReadFromUDP(byt)
-	if err != nil {
-		fmt.Println("couldn't read from udp addr")
+	for {
+		n, udpAddr, err := conn.ReadFromUDP(byt)
+		if err != nil {
+			fmt.Println("couldn't read from udp addr")
+		}
+		var peer PeerInfo
+		if err := json.Unmarshal(byt[:n], peer); err != nil {
+			fmt.Println("couldn't marshal the peerinfo")
+		}
+		if peer.Id == selfId {
+			continue
+		}
+		ip := udpAddr.IP.String()
+		fmt.Printf("Id: %s, ip: %s, tcp: %, device: %s\n", peer.Id, ip, peer.TcpPort, peer.Device)
 	}
-	var peer PeerInfo
-	if err := json.Unmarshal(byt[:n], peer); err != nil {
-		fmt.Println("couldn't marshal the peerinfo")
-	}
-	if peer.Id == selfId {
-		continue
-	}
-	ip := udpAddr.IP.String()
-	fmt.Printf("Id: %s, ip: %s, tcp: %, device: %s\n", peer.Id, ip, peer.TcpPort, peer.Device)
 }
